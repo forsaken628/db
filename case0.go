@@ -3,10 +3,9 @@ package main
 import (
 	"time"
 	"fmt"
-	"database/sql"
 )
 
-//会出现死锁
+//空表会出现死锁
 func case0 () {
 	wg.Add(3)
 	go run(1)
@@ -29,6 +28,7 @@ func run(id int) {
 		}
 		r, err := tx.Exec("insert into user value (null,?,?)", name, item)
 		if err != nil {
+			fmt.Println("insert", name, item)
 			panic(err)
 		}
 		a, err := r.RowsAffected()
@@ -39,19 +39,4 @@ func run(id int) {
 		fmt.Println(id, n, a == 1, time.Since(now))
 	}
 	wg.Done()
-}
-
-func query(tx *sql.Tx, name string, item int) bool {
-	r, err := tx.Query("select count(*) from user where name=? and item=? for update", name, item)
-	if err != nil {
-		panic(err)
-	}
-	r.Next()
-	i := 0
-	r.Scan(&i)
-	if r.Next() {
-		fmt.Println("---", name, item)
-		panic(1)
-	}
-	return i == 0
 }
